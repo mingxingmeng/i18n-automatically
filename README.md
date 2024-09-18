@@ -82,3 +82,17 @@ yarn add @vscode/vsce -g
 ```bash
 vsce package --yarn
 ```
+
+## jscodeshift
+
+<https://github.com/facebook/jscodeshift>
+
+jscodeshift 是一个基于 codemod 理念的 JavaScript/TypeScript 重构工具，其原理是将 JS/TS 代码解析为抽象语法树（Abstract Syntax Tree，AST），并提供一系列用于访问和修改 AST 的 API 以实现自动化的代码重构。jscodeshift 将 babel parser、ast-types（用于快速创建新的 AST 节点）和 recast（维护生成代码的代码风格信息）三大工具整合在一起，提供了简便快捷的操作接口；同时它还提供了多任务并行执行的功能，使其对于海量代码文件的重构操作可以并行运行，充分利用多核 CPU 算力，缩短重构任务执行时间。
+
+### 抽象语法树
+
+> 在计算机科学中，抽象语法树（Abstract Syntax Tree，AST），或简称语法树（Syntax tree），是源代码语法结构的一种抽象表示。它以树状的形式表现编程语言的语法结构，树上的每个节点都表示源代码中的一种结构。之所以说语法是“抽象”的，是因为这里的语法并不会表示出真实语法中出现的每个细节。
+
+抽象语法树可视化工具
+
+<https://astexplorer.net/>
