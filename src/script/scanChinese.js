@@ -1,5 +1,6 @@
 const vscode = require("vscode");
 const fs = require("fs");
+const path = require("path");
 const {
   generateUniqueId,
   isInCommentByPosition,
@@ -51,7 +52,7 @@ const readFileContent = async (filePath) => {
  * @returns {string}
  */
 const generateUUID = (filePath, fileUuid, index, config) => {
-  const pathParts = filePath.split("\\");
+  const pathParts = filePath.split(path.sep);
   const selectedLevelsParts = pathParts.slice(-config.keyFilePathLevel);
   const lastLevelWithoutExtension =
     selectedLevelsParts[selectedLevelsParts.length - 1].split(".")[0];
@@ -132,19 +133,23 @@ exports.scanChinese = async (filePath = undefined) => {
       if (inTemplate) {
         let replacement;
         // 判断当前位置是否在属性值中
-        if (text[start + offset - 2] === "=") {
+        if (start + offset - 2 >= 0 && text[start + offset - 2] === "=") {
           // 从等号往前找属性名的开始
           let attributeStart = start + offset - 2 - 1;
           // 找到属性名的开始位置，遇到空格或其他非字母数字字符时暂停
           while (attributeStart >= 0 && text[attributeStart].match(/[\w-]/)) {
             attributeStart--;
           }
-          // 在属性名的开始位置增加冒号
-          text =
-            text.slice(0, attributeStart + 1) +
-            ":" +
-            text.slice(attributeStart + 1);
-          offset++;
+          // 检查属性是否已经绑定
+          const isBound = text[attributeStart + 1] === ":";
+          if (!isBound) {
+            // 在属性名的开始位置增加冒号
+            text =
+              text.slice(0, attributeStart + 1) +
+              ":" +
+              text.slice(attributeStart + 1);
+            offset++;
+          }
           replacement = `${config.templateI18nCall}('${uuid}')`;
         } else {
           replacement = `{{ ${config.templateI18nCall}('${uuid}') }}`;
@@ -167,7 +172,7 @@ exports.scanChinese = async (filePath = undefined) => {
         // 检查是否是单引号或双引号包裹的字符串,如果有，去掉引号
         const stringMatch = text
           .slice(start + offset - 1, end + offset + 1)
-          .match(/^['"][\u4e00-\u9fa5]+['"]$/);
+          .match(/^(['"])[\u4e00-\u9fa5]+\1$/);
         if (stringMatch) {
           const replacementLength = replacement.length;
           text =
@@ -198,12 +203,8 @@ exports.scanChinese = async (filePath = undefined) => {
     }
 
     // 如果在 script 标签中没有找到 i18n 引用，并且有 i18n 的用法，就插入到引入 i18n 的语句
-    if (
-      !text.match(
-        /import\s+(?:\{\s*i18n\s*\}|\s*i18n\s+)\s+from\s+['"].*['"];/
-      ) &&
-      hasI18nUsageInScript
-    ) {
+    const alreadyImported = text.match(/import\s+(?:i18n)\s+from\s+['"].*['"]/);
+    if (!alreadyImported && hasI18nUsageInScript) {
       const scriptStartRegex = /<script\s*([^>]*)>/gs;
       const scriptStartMatches = text.match(scriptStartRegex);
       if (scriptStartMatches) {

@@ -1,6 +1,6 @@
 const fs = require("fs");
 const vscode = require("vscode");
-const { getRootPath } = require("../utils/index.js");
+const { getRootPath, customLog } = require("../utils/index.js");
 const { getConfig } = require("./setting.js");
 const { baiduTranslateApi } = require("../api/baidu.js");
 
@@ -18,10 +18,10 @@ exports.generateLanguagePackage = async () => {
     );
     return;
   }
-  // 判断config是否配置了百度翻译的appid和secretKey
+  // 判断config是否配置了百度翻译的 appid 和 secretKey
   if (!config.baidu.appid || !config.baidu.secretKey) {
     vscode.window.showInformationMessage(
-      `未配置百度翻译的appid和secretKey，请先在配置文件中配置`
+      `未配置百度翻译的 appid 和 secretKey，请先在配置文件中配置`
     );
 
     const configFilePath = getRootPath() + "/automatically-i18n-config.json";
@@ -31,11 +31,12 @@ exports.generateLanguagePackage = async () => {
     return;
   }
 
-  // 获取用户输入的语言包名称
-  const language = await vscode.window.showInputBox({
+  // 获取用户输入的语言包名称，如果用户未输入，则默认为'en'
+  const languageInput = await vscode.window.showInputBox({
     prompt: "请输入语言包名称",
     value: "en",
   });
+  const language = languageInput || "en";
 
   // 读取中文语言包文件内容
   const zhString = await fs.promises.readFile(zhPath, "utf-8");
@@ -43,15 +44,36 @@ exports.generateLanguagePackage = async () => {
 
   // 将中文语言包内容转换为 JSON 对象
   const zhJson = JSON.parse(zhString);
-  const zhJsonValues = Object.values(zhJson);
   const zhJsonKeys = Object.keys(zhJson);
-  const zhJsonValuesLength = zhJsonValues.length;
+
+  // 读取已有的目标语言包文件（如果存在）
+  let existingLanguageJson = {};
+  const existingLanguagePath = `${getRootPath()}${
+    config.i18nFilePath
+  }/locale/${language}.json`;
+  if (fs.existsSync(existingLanguagePath)) {
+    const existingLanguageString = await fs.promises.readFile(
+      existingLanguagePath,
+      "utf-8"
+    );
+    existingLanguageJson = JSON.parse(existingLanguageString);
+  }
+
+  // 过滤出需要翻译的中文键和值
+  const keysToTranslate = [];
+  const valuesToTranslate = [];
+  zhJsonKeys.forEach((key) => {
+    if (!existingLanguageJson[key]) {
+      keysToTranslate.push(key);
+      valuesToTranslate.push(zhJson[key]);
+    }
+  });
 
   // 计算需要发送的请求次数
-  const zhJsonValuesLengthgroup = Math.ceil(
-    zhJsonValuesLength / TRANSLATE_LIMIT
+  const valuesToTranslateLengthgroup = Math.ceil(
+    valuesToTranslate.length / TRANSLATE_LIMIT
   );
-  const enJsonObj = JSON.parse(JSON.stringify(zhJson));
+  const newLanguageJson = JSON.parse(JSON.stringify(existingLanguageJson));
 
   await vscode.window.withProgress(
     {
@@ -61,22 +83,26 @@ exports.generateLanguagePackage = async () => {
     },
     async (progress) => {
       progress.report({ increment: 0 });
-      for (let i = 0; i < zhJsonValuesLengthgroup; i++) {
+      for (let i = 0; i < valuesToTranslateLengthgroup; i++) {
         // 计算进度
-        const progressPercentage = ((i + 1) / zhJsonValuesLengthgroup) * 100;
+        const progressPercentage =
+          ((i + 1) / valuesToTranslateLengthgroup) * 100;
         progress.report({ increment: progressPercentage });
-        const zhJsonValuesLengthgroupArrItem = zhJsonValues.slice(
+        const valuesToTranslateLengthgroupArrItem = valuesToTranslate.slice(
           i * TRANSLATE_LIMIT,
           (i + 1) * TRANSLATE_LIMIT
         );
-        const zhJsonValuesLengthgroupArrItemString =
-          zhJsonValuesLengthgroupArrItem.join("\n");
+        const valuesToTranslateLengthgroupArrItemString =
+          valuesToTranslateLengthgroupArrItem.join("\n");
         const data = await baiduTranslateApi(
-          zhJsonValuesLengthgroupArrItemString,
+          valuesToTranslateLengthgroupArrItemString,
           language
         );
+        customLog(config.debug, "翻译结果", data);
+        // 将翻译结果添加到目标语言包对象中
         data.forEach((item, index) => {
-          enJsonObj[zhJsonKeys[i * TRANSLATE_LIMIT + index]] = item.dst;
+          const key = keysToTranslate[i * TRANSLATE_LIMIT + index];
+          newLanguageJson[key] = item.dst;
         });
       }
     }
@@ -85,6 +111,6 @@ exports.generateLanguagePackage = async () => {
   // 生成指定语言的语言包文件
   await fs.promises.writeFile(
     `${getRootPath()}${config.i18nFilePath}/locale/${language}.json`,
-    JSON.stringify(enJsonObj, null, 2)
+    JSON.stringify(newLanguageJson, null, 2)
   );
 };
