@@ -83,6 +83,12 @@ yarn add @vscode/vsce -g
 vsce package --yarn
 ```
 
+## 为什么选择 AST 而不是正则？
+
+- 正则表达式的局限性：正则无法正确解析嵌套的结构、注释、模板中的字符串等复杂情况，容易导致误判或替换错误。
+
+- AST 的优势：通过将代码解析成 AST，能够准确地识别代码结构（如函数、变量、注释、模板中的表达式等），并基于位置、作用域等做精准的修改，不会因为某些边界情况出现不正确的替换。
+
 ## jscodeshift
 
 <https://github.com/facebook/jscodeshift>
