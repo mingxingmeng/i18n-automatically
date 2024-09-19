@@ -94,10 +94,15 @@ exports.generateLanguagePackage = async () => {
         );
         const valuesToTranslateLengthgroupArrItemString =
           valuesToTranslateLengthgroupArrItem.join("\n");
-        const data = await baiduTranslateApi(
+        const res = await baiduTranslateApi(
           valuesToTranslateLengthgroupArrItemString,
           language
         );
+        if (res.data.error_code) {
+          vscode.window.showErrorMessage(`翻译失败：${res.data.error_msg}`);
+          continue;
+        }
+        const data = res.data.trans_result;
         customLog(config.debug, "翻译结果", data);
         // 将翻译结果添加到目标语言包对象中
         data.forEach((item, index) => {

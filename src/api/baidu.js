@@ -15,7 +15,7 @@ exports.baiduTranslateApi = async (q, language = "en") => {
   }
   const { appid, secretKey } = config.baidu;
   const salt = new Date().getTime();
-  const res = await axios({
+  return await axios({
     method: "post",
     url: "https://fanyi-api.baidu.com/api/trans/vip/translate",
     params: {
@@ -27,5 +27,4 @@ exports.baiduTranslateApi = async (q, language = "en") => {
       sign: generateSign(appid, q, salt, secretKey),
     },
   });
-  return res.data.trans_result;
 };
