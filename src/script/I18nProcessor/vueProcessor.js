@@ -28,6 +28,8 @@ async function processVueAst(context) {
     }
 
     await processVueTemplate(templateAst, context, descriptor);
+    //存储模板变更的变量
+    context.templateSize = context.translations.size;
     await processVueScripts(scriptAst, scriptSetupAst, context);
 
     return context.translations.size > 0 ? context : undefined;
@@ -258,13 +260,13 @@ function processAttribute(prop, context) {
 function processDirective(prop, context) {
   let directiveName = getDirectiveName(prop);
 
-  if (prop.arg && !directiveName.includes(prop.arg.content)) {
-    directiveName += prop.arg.content;
-  }
+  // if (prop.arg && !directiveName.includes(prop.arg.content)) {
+  //   directiveName += prop.arg.content;
+  // }
 
-  if (prop.modifiers && prop.modifiers.length > 0) {
-    directiveName += prop.modifiers.map((mod) => `.${mod.content}`).join(' ');
-  }
+  // if (&&prop.modifiers && prop.modifiers.length > 0) {
+  //   directiveName += prop.modifiers.map((mod) => `.${mod.content}`).join(' ');
+  // }
 
   if (!prop.exp) return ` ${directiveName}`;
 

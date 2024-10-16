@@ -10,10 +10,7 @@ function createContext(filePath, config) {
   return {
     filePath,
     fileUuid: generateUniqueId(),
-    config: {
-      ...config,
-      isAutoImportI18n: true,
-    },
+    config: readConfig(),
     index: 0,
     translations: new Map(),
     contentSource: fs.readFileSync(filePath, 'utf-8'),
