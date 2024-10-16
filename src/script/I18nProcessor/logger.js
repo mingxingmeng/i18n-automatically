@@ -2,9 +2,8 @@ const { readConfig } = require('../setting');
 
 const logger = (type) => {
   const config = readConfig();
-
-  return (message, ...args) => {
-    if (config.debug || type === 'error') {
+  if (config.debug || type === 'error') {
+    return (message, ...args) => {
       switch (type) {
         case 'debug':
           console.debug(message, ...args);
@@ -19,8 +18,10 @@ const logger = (type) => {
           console.error(message, ...args);
           break;
       }
-    }
-  };
+    };
+  } else {
+    return () => {};
+  }
 };
 
 module.exports = {
